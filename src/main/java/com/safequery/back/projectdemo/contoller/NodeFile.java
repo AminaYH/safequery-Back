@@ -74,7 +74,7 @@ public class NodeFile {
 //    }
 private static String uploadedFolderPath;
 @PostMapping("/upload")
-public ResponseEntity<List<String>> uploadFile(@RequestParam("file") List<MultipartFile> files,@RequestParam(required = false) String folderPath) {
+public ResponseEntity<String> uploadFile(@RequestParam("file") List<MultipartFile> files,@RequestParam(required = false) String folderPath) {
     try {
         List<String> uploadedFiles = new ArrayList<>();
 
@@ -85,18 +85,18 @@ public ResponseEntity<List<String>> uploadFile(@RequestParam("file") List<Multip
             LOGGER.info("Source File: {}", file.getOriginalFilename());
 
             LOGGER.info("Target Path: {}", targetPath);
-            uploadedFiles.add(folderPath);
-            uploadedFiles.add(file.getOriginalFilename());
+            uploadedFiles.add(file.getOriginalFilename().toString());
 
-            java.nio.file.Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
         }
+        uploadedFiles = uploadedFiles.stream().filter(Objects::nonNull).collect(Collectors.toList());
 
         listFiles(targetFolderPath);
+        String result = String.join(" ", uploadedFiles);
 
-        return ResponseEntity.ok(uploadedFiles);
+        return ResponseEntity.ok(result);
     } catch (Exception e) {
         LOGGER.error("Error uploading files: {}", e.getMessage(), e);
-        return ResponseEntity.status(500).body(Collections.emptyList());
+        return ResponseEntity.status(500).body("Error uploading files: " + e.getMessage());
     }
 }
     @GetMapping("/getFolder")
