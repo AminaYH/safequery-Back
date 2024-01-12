@@ -23,9 +23,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:4200")
 @RestController
-@RequestMapping("")
+@RequestMapping("/api")
 public class NodeFile {
     private static final Logger LOGGER = LoggerFactory.getLogger(NodeFile.class);
 
@@ -74,7 +74,7 @@ public class NodeFile {
 //    }
 private static String uploadedFolderPath;
 @PostMapping("/upload")
-public ResponseEntity<String> uploadFile(@RequestParam("file") List<MultipartFile> files,@RequestParam(required = false) String folderPath) {
+public ResponseEntity<List<String>> uploadFile(@RequestParam("file") List<MultipartFile> files,@RequestParam(required = false) String folderPath) {
     try {
         List<String> uploadedFiles = new ArrayList<>();
 
@@ -83,43 +83,41 @@ public ResponseEntity<String> uploadFile(@RequestParam("file") List<MultipartFil
         for (MultipartFile file : files) {
             Path targetPath = Paths.get(targetFolderPath, file.getOriginalFilename());
             LOGGER.info("Source File: {}", file.getOriginalFilename());
-
-            LOGGER.info("Target Path: {}", targetPath);
+            ;  // Save the file to the target path
+            file.transferTo(targetPath);
+            LOGGER.info("Target Path: {}", file.getOriginalFilename());
             uploadedFiles.add(file.getOriginalFilename().toString());
 
         }
         uploadedFiles = uploadedFiles.stream().filter(Objects::nonNull).collect(Collectors.toList());
 
-        listFiles(targetFolderPath);
-        String result = String.join(" ", uploadedFiles);
 
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(uploadedFiles);
     } catch (Exception e) {
         LOGGER.error("Error uploading files: {}", e.getMessage(), e);
-        return ResponseEntity.status(500).body("Error uploading files: " + e.getMessage());
+        return ResponseEntity.status(500).body(Collections.emptyList());
     }
 }
+
     @GetMapping("/getFolder")
-    public ResponseEntity<List<String>> getFolder() {
+    public ResponseEntity<List<String>> getFolder(@RequestParam(required = false) String folderPath) {
         try {
-            String folderPath = (uploadedFolderPath != null) ? uploadedFolderPath : System.getProperty("user.dir");
+            String targetFolderPath = (folderPath != null) ? folderPath : System.getProperty("user.dir");
 
-            File folder = new File(folderPath);
-
-            // List all files in the folder
+            File folder = new File(targetFolderPath);
             File[] files = folder.listFiles();
 
             if (files != null && files.length > 0) {
-                List<String> fileNames = Arrays.stream(files)
-                        .filter(Objects::nonNull)
-                        .map(File::getName)
+                List<String> filePaths = Arrays.stream(files)
+                        .filter(File::isFile)
+                        .map(File::getPath)
                         .collect(Collectors.toList());
-
-                return ResponseEntity.ok(fileNames);
+                return ResponseEntity.ok(filePaths);
             } else {
                 return ResponseEntity.ok(Collections.emptyList());
             }
         } catch (Exception e) {
+            LOGGER.error("Error getting folder: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Collections.emptyList());
         }
     }
@@ -130,15 +128,15 @@ public ResponseEntity<String> uploadFile(@RequestParam("file") List<MultipartFil
         File[] files = folder.listFiles();
 
         if (files != null) {
-            List<String> fileNames = Arrays.stream(files)
+            List<String> filePaths = Arrays.stream(files)
                     .filter(Objects::nonNull)
-                    .map(File::getName)
+                    .map(file -> folderPath + "/" + file.getName()) // Include directory path in the format "directoryPath/fileName"
                     .toList();
 
-            System.out.println("List of files: " + fileNames);
-
+            System.out.println("List of files: " + filePaths);
         }
+
     }
-}
+    }
 
 
