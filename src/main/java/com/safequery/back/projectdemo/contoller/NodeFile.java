@@ -3,13 +3,19 @@ package com.safequery.back.projectdemo.contoller;
 import ch.qos.logback.core.model.Model;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.ResourceUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,22 +36,11 @@ public class NodeFile {
     private static final Logger LOGGER = LoggerFactory.getLogger(NodeFile.class);
 
     private static final Path PUBLIC_DIR = Paths.get(System.getProperty("user.dir"), "public");
+    private static List<String> uploadedFiles = new ArrayList<>();
 
 
 
-    @GetMapping("/files")
-    public List<String> getAllFiles() {
-        try (Stream<Path> paths = Files.list(PUBLIC_DIR)) {
-            return paths
-                    .filter(Files::isRegularFile)
-                    .map(Path::getFileName)
-                    .map(Path::toString)
-                    .collect(Collectors.toList());
-        } catch (IOException e) {
-            LOGGER.error("Error listing files", e);
-            return List.of("Error listing files");
-        }
-    }
+
 
 //    @PostMapping(value = "/uploadFolder", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
 //    public String uploadFolder (HttpServletRequest request) throws IOException, ServletException {
@@ -74,9 +69,8 @@ public class NodeFile {
 //    }
 private static String uploadedFolderPath;
 @PostMapping("/upload")
-public ResponseEntity<List<String>> uploadFile(@RequestParam("file") List<MultipartFile> files,@RequestParam(required = false) String folderPath) {
+public ResponseEntity<List<String>> uploadFile(@RequestParam("file") List<MultipartFile> files,@RequestParam(required = false) String folderPath ,  HttpSession session) {
     try {
-        List<String> uploadedFiles = new ArrayList<>();
 
         String targetFolderPath = (folderPath != null) ? folderPath : System.getProperty("user.dir");
        //extract file by file
@@ -90,6 +84,7 @@ public ResponseEntity<List<String>> uploadFile(@RequestParam("file") List<Multip
 
         }
         uploadedFiles = uploadedFiles.stream().filter(Objects::nonNull).collect(Collectors.toList());
+        session.setAttribute("uploadedFiles", uploadedFiles);
 
 
         return ResponseEntity.ok(uploadedFiles);
@@ -100,22 +95,9 @@ public ResponseEntity<List<String>> uploadFile(@RequestParam("file") List<Multip
 }
 
     @GetMapping("/getFolder")
-    public ResponseEntity<List<String>> getFolder(@RequestParam(required = false) String folderPath) {
+    public ResponseEntity<List<String>> getFolder(HttpSession session) {
         try {
-            String targetFolderPath = (folderPath != null) ? folderPath : System.getProperty("user.dir");
-
-            File folder = new File(targetFolderPath);
-            File[] files = folder.listFiles();
-
-            if (files != null && files.length > 0) {
-                List<String> filePaths = Arrays.stream(files)
-                        .filter(File::isFile)
-                        .map(File::getPath)
-                        .collect(Collectors.toList());
-                return ResponseEntity.ok(filePaths);
-            } else {
-                return ResponseEntity.ok(Collections.emptyList());
-            }
+            return ResponseEntity.ok(uploadedFiles);
         } catch (Exception e) {
             LOGGER.error("Error getting folder: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Collections.emptyList());
@@ -137,6 +119,71 @@ public ResponseEntity<List<String>> uploadFile(@RequestParam("file") List<Multip
         }
 
     }
+    @PostMapping("/sendFilename")
+    public ResponseEntity<String> sendFilename(@RequestBody Map<String, String> request) {
+        String fileName = request.get("fileName");
+        // Implement your logic here
+        // You can store the filename in a variable or database for later retrieval
+        return ResponseEntity.ok("Filename received successfully");
     }
 
+    @GetMapping("/download/{fileName}")
+    public ResponseEntity<byte[]> downloadFile(@PathVariable String fileName) {
+        try {
+            Optional<Path> filePath = findFile(System.getProperty("user.dir"), fileName);
+
+            if (filePath.isPresent()) {
+                Path finalPath = filePath.get();
+
+                byte[] fileContent = Files.readAllBytes(finalPath);
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                headers.setContentDispositionFormData("attachment", fileName);
+
+                return new ResponseEntity<>(fileContent, headers, HttpStatus.OK);
+            } else {
+                LOGGER.error("File not found: {}", fileName);
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (IOException e) {
+            LOGGER.error("Error reading or writing file: {}", e.getMessage(), e);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private Optional<Path> findFile(String baseFolderPath, String fileName) throws IOException {
+        File baseFolder = new File(baseFolderPath);
+
+        if (baseFolder.exists() && baseFolder.isDirectory()) {
+            return findFileRecursive(baseFolder, fileName);
+        } else {
+            LOGGER.error("Base folder not found: {}", baseFolderPath);
+            return Optional.empty();
+        }
+    }
+
+    private Optional<Path> findFileRecursive(File folder, String fileName) {
+        File[] files = folder.listFiles();
+
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    Optional<Path> filePath = findFileRecursive(file, fileName);
+                    if (filePath.isPresent()) {
+                        return filePath;
+                    }
+                } else if (file.getName().equals(fileName)) {
+                    return Optional.of(file.toPath());
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
+
+
+
+
+}
 

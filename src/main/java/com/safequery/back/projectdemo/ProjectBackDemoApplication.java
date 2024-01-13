@@ -11,6 +11,8 @@ public class ProjectBackDemoApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(ProjectBackDemoApplication.class, args);
+		String user = System.getProperty("user.name");
+		System.out.println("Current user: " + user);
 	}
 
 }
