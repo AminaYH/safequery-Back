@@ -1,15 +1,18 @@
 package com.safequery.back.projectdemo.contoller;
 
+import com.safequery.back.projectdemo.service.VulnerabilityDetectionService;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import java.nio.charset.StandardCharsets;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,12 +30,17 @@ public class NodeFile {
 
     private static final Path PUBLIC_DIR = Paths.get(System.getProperty("user.dir"), "public");
     private static List<String> uploadedFiles = new ArrayList<>();
+    private static String code ;
+
+    private final VulnerabilityDetectionService vulnerabilityService;
+    @Autowired
+
+    public NodeFile(VulnerabilityDetectionService vulnerabilityService) {
+        this.vulnerabilityService = vulnerabilityService;
+    }
 
 
-
-
-
-//    @PostMapping(value = "/uploadFolder", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
+    //    @PostMapping(value = "/uploadFolder", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
 //    public String uploadFolder (HttpServletRequest request) throws IOException, ServletException {
 ////
 ////        for (var part : request.getParts()) {
@@ -125,6 +133,7 @@ public ResponseEntity<List<String>> uploadFile(@RequestParam("file") List<Multip
                 Path finalPath = filePath.get();
 
                 byte[] fileContent = Files.readAllBytes(finalPath);
+                 code = new String(fileContent, StandardCharsets.UTF_8);
 
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
@@ -171,7 +180,15 @@ public ResponseEntity<List<String>> uploadFile(@RequestParam("file") List<Multip
         return Optional.empty();
     }
 
-
+    @GetMapping("/check-sql-injection")
+    public String checkForSQLInjection() {
+        VulnerabilityDetectionService.VulnerabilityResult result = vulnerabilityService.checkForSQLInjection(code);
+        if (result.isDetected()) {
+            return "SQL Injection vulnerability detected! " + result.getMessage();
+        } else {
+            return result.getMessage();
+        }
+    }
 
 
 }
