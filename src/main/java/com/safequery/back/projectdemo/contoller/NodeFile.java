@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -68,38 +69,65 @@ public class NodeFile {
 @PostMapping("/upload")
 public ResponseEntity<List<String>> uploadFile(@RequestParam("file") List<MultipartFile> files,@RequestParam(required = false) String folderPath ,  HttpSession session) {
     try {
+        // Use the system's temporary directory as the default folder
+        String uploadFolderPath = System.getProperty("java.io.tmpdir");
 
-        String targetFolderPath = (folderPath != null) ? folderPath : System.getProperty("user.dir");
-       //extract file by file
         for (MultipartFile file : files) {
-            Path targetPath = Paths.get(targetFolderPath, file.getOriginalFilename());
-            LOGGER.info("Source File: {}", file.getOriginalFilename());
-            ;  // Save the file to the target path
-            file.transferTo(targetPath);
-            LOGGER.info("Target Path: {}", file.getOriginalFilename());
-            uploadedFiles.add(file.getOriginalFilename().toString());
+            String relativePath = getRelativePath(file.getOriginalFilename(), uploadFolderPath);
+            relativePath = relativePath.replaceFirst("tmp/", "");
 
+            Path targetPath = Paths.get(uploadFolderPath, relativePath).normalize();
+
+            // Remove "tmp" from the path
+
+            // Save the file to the target path
+            Files.createDirectories(targetPath.getParent());
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+            LOGGER.info("Target Path: {}", targetPath.toString());
+            uploadedFiles.add(targetPath.toString());
         }
+
         uploadedFiles = uploadedFiles.stream().filter(Objects::nonNull).collect(Collectors.toList());
         session.setAttribute("uploadedFiles", uploadedFiles);
-
 
         return ResponseEntity.ok(uploadedFiles);
     } catch (Exception e) {
         LOGGER.error("Error uploading files: {}", e.getMessage(), e);
         return ResponseEntity.status(500).body(Collections.emptyList());
     }
+
 }
+    private String getRelativePath(String originalFilename, String baseFolder) {
+        // Replace backslashes with slashes for compatibility
+        String normalizedOriginalFilename = originalFilename.replace("\\", "/");
+
+        // Remove "tmp" from the path
+        return normalizedOriginalFilename.replaceFirst("tmp/", "");
+    }
 
     @GetMapping("/getFolder")
     public ResponseEntity<List<String>> getFolder(HttpSession session) {
         try {
-            return ResponseEntity.ok(uploadedFiles);
+            // Generate relative paths without "/tmp"
+            List<String> relativePaths = uploadedFiles.stream()
+                    .map(this::getRelativePathWithoutTmp)
+                    .map(path -> path.startsWith("/") ? path.substring(1) : path)  // Remove leading slash
+                    // Filter out empty paths
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(relativePaths);
         } catch (Exception e) {
             LOGGER.error("Error getting folder: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Collections.emptyList());
         }
     }
+
+    private String getRelativePathWithoutTmp(String fullPath) {
+        // Replace "/tmp" with an empty string
+        return fullPath.replace("/tmp", "");
+    }
+
     private void listFiles(String folderPath) {
         File folder = new File(folderPath);
 
