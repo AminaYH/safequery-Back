@@ -155,7 +155,7 @@ public ResponseEntity<List<String>> uploadFile(@RequestParam("file") List<Multip
     @GetMapping("/download/{fileName}")
     public ResponseEntity<byte[]> downloadFile(@PathVariable String fileName) {
         try {
-            Optional<Path> filePath = findFile(System.getProperty("user.dir"), fileName);
+            Optional<Path> filePath = findFile(System.getProperty("java.io.tmpdir"), fileName);
 
             if (filePath.isPresent()) {
                 Path finalPath = filePath.get();
