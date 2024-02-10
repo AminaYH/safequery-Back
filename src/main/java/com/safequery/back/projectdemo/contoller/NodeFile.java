@@ -210,11 +210,8 @@ public ResponseEntity<List<String>> uploadFile(@RequestParam("file") List<Multip
     @GetMapping("/check-sql-injection")
     public String checkForSQLInjection() {
         VulnerabilityDetectionService.VulnerabilityResult result = vulnerabilityService.checkForSQLInjection(code);
-        if (result.isDetected()) {
-            return "SQL Injection vulnerability detected! " + result.getMessage();
-        } else {
-            return result.getMessage();
-        }
+        VulnerabilityDetectionService.VulnerabilityResult result2 = vulnerabilityService.CheckForVulnerabilityUnion(code);
+        return  result.getMessage() + result2.getMessage();
     }
 
 
