@@ -87,7 +87,6 @@ public ResponseEntity<List<String>> uploadFile(@RequestParam("file") List<Multip
             LOGGER.info("Target Path: {}", targetPath.toString());
             uploadedFiles.add(targetPath.toString());
         }
-
         uploadedFiles = uploadedFiles.stream().filter(Objects::nonNull).collect(Collectors.toList());
         session.setAttribute("uploadedFiles", uploadedFiles);
 
