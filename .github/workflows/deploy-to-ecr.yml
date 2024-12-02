@@ -3,13 +3,15 @@ name: Build and Push Docker Image to ECR
 on:
   push:
     branches:
-      - main
+      - main  # Trigger on push to the main branch
 
 jobs:
-  push:
+  build-and-push:
     runs-on: ubuntu-latest
-
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -18,18 +20,18 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Push Docker Image
-        if: success()
+      - name: Build Docker Image
         run: |
-          IMAGE_TAG=${{ github.sha }}
-          REPOSITORY_URI=${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}
-          echo "Pushing Docker image to $REPOSITORY_URI:$IMAGE_TAG"
-          docker push $REPOSITORY_URI:$IMAGE_TAG
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          docker build -t my-image:latest .
 
+      - name: Tag Docker Image
+        run: |
+          REPOSITORY_URI=${{ secrets.ECR_REGISTRY }}/my-image
+          docker tag my-image:latest $REPOSITORY_URI:latest
+
+      - name: Push Docker Image to ECR
+        run: |
+          REPOSITORY_URI=${{ secrets.ECR_REGISTRY }}/my-image
+          docker push $REPOSITORY_URI:latest
