@@ -17,8 +17,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: '21'  # Set the Java version that your project uses
-          distribution: ''
-
+          distribution: 'temurin'
       - name: Build Project (e.g., Maven)
         run: mvn clean install  # Adjust this command to your build tool (e.g., Maven, Gradle)
 
