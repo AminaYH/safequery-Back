@@ -2,8 +2,8 @@ package com.safequery.back.projectdemo.contoller;
 
 import com.safequery.back.projectdemo.Model.JwtResponse;
 import com.safequery.back.projectdemo.Model.UserDAO;
-import com.safequery.back.projectdemo.service.LoginService;
-import com.safequery.back.projectdemo.util.JwtUtil;
+import com.safequery.back.projectdemo.Util.JwtUtil;
+import com.safequery.back.projectdemo.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

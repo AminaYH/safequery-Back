@@ -1,6 +1,6 @@
 package com.safequery.back.projectdemo.security;
 
-import com.safequery.back.projectdemo.util.JwtUtil;
+import com.safequery.back.projectdemo.Util.JwtUtil;
 import jakarta.servlet.annotation.WebFilter;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;

@@ -1,4 +1,4 @@
-package com.safequery.back.projectdemo.Resposirty;
+package com.safequery.back.projectdemo.Repository;
 
 import com.safequery.back.projectdemo.Model.UserDAO;
 import org.springframework.data.jpa.repository.JpaRepository;
