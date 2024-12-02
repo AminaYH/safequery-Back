@@ -8,9 +8,19 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+
+      - name: Set up Java (If needed for your project)
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'  # Set the Java version that your project uses
+          distribution: ''
+
+      - name: Build Project (e.g., Maven)
+        run: mvn clean install  # Adjust this command to your build tool (e.g., Maven, Gradle)
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
