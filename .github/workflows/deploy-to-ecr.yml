@@ -10,7 +10,15 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
+    services:
+      postgres:
+        image: postgres:latest
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: postgres
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
