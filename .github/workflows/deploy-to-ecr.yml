@@ -7,7 +7,7 @@ on:
 
 jobs:
   push:
-    runs-on: back-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Configure AWS Credentials
